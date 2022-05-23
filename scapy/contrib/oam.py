@@ -35,138 +35,93 @@
     :description:
 
         This module provides Scapy layers for the CFM EOAM protocol.
-        It is adopted from https://gitlab.com/wireshark/wireshark/-/blob/master/epan/dissectors/packet-cfm.c
 
         normative references:
-<<<<<<< Updated upstream
-          - ITU-T Rec. G.8013/Y.1731 (08/2019) - Operation, administration and maintenance (OAM) functions and
-            mechanisms for Ethernet-based networks
-          - ITU-T Rec. G.8031/Y.1342 (01/2015) - Ethernet linear protection switching
-          - ITU-T Rec. G.8032/Y.1344 (02/2022) - Ethernet ring protection switching
+          - ITU-T Rec. G.8013/Y.1731 (08/2019) - Operation, administration and
+            maintenance (OAM) functions and mechanisms for Ethernet-based
+            networks
+          - ITU-T Rec. G.8031/Y.1342 (01/2015) - Ethernet linear protection
+            switching
+          - ITU-T Rec. G.8032/Y.1344 (02/2022) - Ethernet ring protection
+            switching
 
-    Fields table (csv):
-    ,1,3,2,5,4,33,35,37,39,40,41(0),41(1),43,42,45,47,46,49,48,51,50,52,55,54,53,32
-    mel,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    version,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    opcode,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    flags,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    tlv_offset,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    seq_num,+,+,+,,,,,+,,,,,,,,,,,,,,,,,,
-    trans_id,,,,+,+,,,,,,,,,,,,,,,,,,,,,
-    oui,,,,,,,,,,,+,+,,,,,,+,+,+,+,,,,,
-    subopcode,,,,,,,,,,,+,+,,,,,,+,+,+,+,,,,,+
-    mep_id,+,,,,,,,,,,,+,,,,,,,,,,,,,,
-    meg_id,+,,,,,,,,,,,,,,,,,,,,,,,,,
-    src_mep_id,,,,,,,,,,,,,,,,,,,,,,,+,+,+,
-    rsv_mep_id,,,,,,,,,,,,,,,,,,,,,,,+,+,+,
-    test id,,,,,,,,,,,,,,,,,,,,,,,+,+,+,
-    txfcf,+,,,,,,,,,,,,+,+,,,,,,,,,+,+,+,
-    rxfcb,+,,,,,,,,,,,,,,,,,,,,,,,,,
-    rxfcf,,,,,,,,,,,,,+,+,,,,,,,,,,,,
-    txfcb,+,,,,,,,,,,,,+,+,,,,,,,,,+,+,,
-    resv,+,,,,,,,,,,,,,,,,,,,,,,,,+,
-    ttl,,,,+,+,,,,,,,,,,,,,,,,,,,,,
-    orig_mac,,,,+,,,,,,,,,,,,,,,,,,,,,,
-    targ_mac,,,,+,,,,,,,,,,,,,,,,,,,,,,
-    relay_act,,,,,+,,,,,,,,,,,,,,,,,,,,,
-    txtsf,,,,,,,,,,,,,,,+,+,+,,,,,,,,,
-    rxtsf,,,,,,,,,,,,,,,+,+,+,,,,,,,,,
-    txtsb,,,,,,,,,,,,,,,,+,+,,,,,,,,,
-    rxtsb,,,,,,,,,,,,,,,,+,+,,,,,,,,,
-    expct_dur,,,,,,,,,,,,+,,,,,,,,,,,,,,
-    nom_bdw,,,,,,,,,,,,,,,,,,,,,,,,,,+
-    curr_bdw,,,,,,,,,,,,,,,,,,,,,,,,,,+
-    port_id,,,,,,,,,,,,,,,,,,,,,,,,,,+
-    aps_data,,,,,,,,,+,+,,,,,,,,,,,,,,,,
-    tlvs,,+,+,+,+,,,+,,,,,,,+,+,+,,,,,,+,+,+,
-    opt_data,,,,,,,,,,,,,,,,,,+,+,+,+,,,,,
-    end_tlv,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-=======
-          - IEEE P802.1ag/D8.1
-          - ITU-T Rec. G.8031/Y.1342 (06/2011) - Ethernet linear protection switching
-          - ITU-T Rec. G.8032/Y.1344 (02/2012) - Ethernet ring protection switching
-          - ITU-T Y.1731 recommendation (08/2019,)
-
-    Fields table (csv):
-    ,1,3,2,5,4,33,35,37,39,41(0),41(1),43,42,45,47,46,49,48,51,50,52,55,54,53,32
-    meg,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    version,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    opcode,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    flags,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    tlv offset,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
-    seq num,+,+,+,+,+,,,+,,,,,,,,,,,,,,,,,
-    oui,,,,,,,,,,+,+,,,,,,+,+,+,+,,,,,
-    subopcode,,,,,,,,,,+,+,,,,,,+,+,+,+,,,,,+
-    mep_id,+,,,,,,,,,,+,,,,,,,,,,,,,,
-    meg_id,+,,,,,,,,,,,,,,,,,,,,,,,,
-    src_mep_id,,,,,,,,,,,,,,,,,,,,,,+,+,,
-    rsv_mep_id,,,,,,,,,,,,,,,,,,,,,,+,+,,
-    test id,,,,,,,,,,,,,,,,,,,,,,+,+,+,
-    txfcf,+,,,,,,,,,,,+,+,,,,,,,,,+,+,+,
-    rxfcb,+,,,,,,,,,,,,,,,,,,,,,,,,
-    rxfcf,,,,,,,,,,,,+,+,,,,,,,,,,,,
-    txfcb,+,,,,,,,,,,,+,+,,,,,,,,,+,+,,
-    resv,+,,,,,,,,,,,,,,,,,,,,,,,+,
-    ttl,,,,+,+,,,,,,,,,,,,,,,,,,,,
-    orig_mac,,,,+,,,,,,,,,,,,,,,,,,,,,
-    targ_mac,,,,+,,,,,,,,,,,,,,,,,,,,,
-    relay_act,,,,,+,,,,,,,,,,,,,,,,,,,,
-    txtsf,,,,,,,,,,,,,,+,+,+,,,,,,,,,
-    rxtsf,,,,,,,,,,,,,,+,+,+,,,,,,,,,
-    txtsb,,,,,,,,,,,,,,,+,+,,,,,,,,,
-    rxtsb,,,,,,,,,,,,,,,+,+,,,,,,,,,
-    aps_data,,,,,,,,,+,,,,,,,,,,,,,,,,
-    expct_dur,,,,,,,,,,,+,,,,,,,,,,,,,,
-    nom_bdw,,,,,,,,,,,,,,,,,,,,,,,,,+
-    curr_bdw,,,,,,,,,,,,,,,,,,,,,,,,,+
-    port_id,,,,,,,,,,,,,,,,,,,,,,,,,+
-    tlvs,,+,+,+,+,,,+,,,,,,+,+,+,,,,,,+,+,+,
-    opt_data,,,,,,,,,,,,,,,,,+,+,+,+,,,,,
-    end_tlv,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
->>>>>>> Stashed changes
+Fields table (csv):
+,1,3,2,5,4,33,35,37,39,40,41(0),41(1),43,42,45,47,46,49,48,51,50,52,55,54,53,32
+mel,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
+version,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
+opcode,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
+flags,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
+tlv_offset,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
+seq_num,+,+,+,,,,,+,,,,,,,,,,,,,,,,,,
+trans_id,,,,+,+,,,,,,,,,,,,,,,,,,,,,
+oui,,,,,,,,,,,+,+,,,,,,+,+,+,+,,,,,
+subopcode,,,,,,,,,,,+,+,,,,,,+,+,+,+,,,,,+
+mep_id,+,,,,,,,,,,,+,,,,,,,,,,,,,,
+meg_id,+,,,,,,,,,,,,,,,,,,,,,,,,,
+src_mep_id,,,,,,,,,,,,,,,,,,,,,,,+,+,+,
+rsv_mep_id,,,,,,,,,,,,,,,,,,,,,,,+,+,+,
+test id,,,,,,,,,,,,,,,,,,,,,,,+,+,+,
+txfcf,+,,,,,,,,,,,,+,+,,,,,,,,,+,+,+,
+rxfcb,+,,,,,,,,,,,,,,,,,,,,,,,,,
+rxfcf,,,,,,,,,,,,,+,+,,,,,,,,,,,,
+txfcb,+,,,,,,,,,,,,+,+,,,,,,,,,+,+,,
+resv,+,,,,,,,,,,,,,,,,,,,,,,,,+,
+ttl,,,,+,+,,,,,,,,,,,,,,,,,,,,,
+orig_mac,,,,+,,,,,,,,,,,,,,,,,,,,,,
+targ_mac,,,,+,,,,,,,,,,,,,,,,,,,,,,
+relay_act,,,,,+,,,,,,,,,,,,,,,,,,,,,
+txtsf,,,,,,,,,,,,,,,+,+,+,,,,,,,,,
+rxtsf,,,,,,,,,,,,,,,+,+,+,,,,,,,,,
+txtsb,,,,,,,,,,,,,,,,+,+,,,,,,,,,
+rxtsb,,,,,,,,,,,,,,,,+,+,,,,,,,,,
+expct_dur,,,,,,,,,,,,+,,,,,,,,,,,,,,
+nom_bdw,,,,,,,,,,,,,,,,,,,,,,,,,,+
+curr_bdw,,,,,,,,,,,,,,,,,,,,,,,,,,+
+port_id,,,,,,,,,,,,,,,,,,,,,,,,,,+
+aps_data,,,,,,,,,+,+,,,,,,,,,,,,,,,,
+tlvs,,+,+,+,+,,,+,,,,,,,+,+,+,,,,,,+,+,+,
+opt_data,,,,,,,,,,,,,,,,,,+,+,+,+,,,,,
+end_tlv,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+,+
 
 
 """
 # from scapy.config import conf
 # from scapy.error import Scapy_Exception
 # from scapy.layers.l2 import Ether, Dot1Q
-from scapy.fields import MACField, IPField, BitField, \
-    StrLenField, ByteEnumField, BitEnumField, \
-    EnumField, ThreeBytesField, BitFieldLenField, BitEnumField, \
-    ShortField, XStrLenField, ByteField, ConditionalField, \
-    MultipleTypeField, IntField, StrField, PacketLenField, PacketField, LenField, PacketListField, OUIField, LongField, FlagsField, NBytesField, FCSField
+from scapy.fields import (
+    BitEnumField,
+    BitField,
+    ByteField,
+    ConditionalField,
+    EnumField,
+    FCSField,
+    FlagsField,
+    IntField,
+    LenField,
+    LongField,
+    MACField,
+    MultipleTypeField,
+    NBytesField,
+    OUIField,
+    PacketField,
+    PacketListField,
+    ShortField,
+)
 from scapy.layers.l2 import Dot1Q
-from scapy.volatile import RandBin
 from scapy.packet import Packet, bind_layers
-from scapy.compat import bytes_encode
-from scapy.libs.six import text_type
 from binascii import crc32
 import struct
 
-from scapy.data import ETHER_TYPES
-# from scapy.compat import orb
-
-
-{
-    0x00: "END_TLV",
-    0x01: "SENDER_ID_TLV",
-    0x02: "PORT_STAT_TLV",
-    0x03: "DATA_TLV",
-    0x04: "INTERF_STAT_TLV",
-    0x05: "REPLY_ING_TLV",
-    0x06: "REPLY_EGR_TLV",
-    0x07: "LTM_EGR_ID_TLV",
-    0x08: "LTR_EGR_ID_TLV",
-    0x0D: "GNM_TLV",
-    0x1F: "ORG_SPEC_TLV",
-    0x20: "TEST_TLV",
-}
-
 
 class MepIdField(ShortField):
+    """
+    Short field with insignificant three leading bytes
+    """
 
     def __init__(self, name, default):
-        super().__init__(name, default & 0x1fff if default is not None else default)
+        super().__init__(
+            name, default & 0x1FFF if default is not None else default
+        )
 
 
 class OAM_TLV(Packet):
@@ -176,6 +131,7 @@ class OAM_TLV(Packet):
 
     name = "OAM TLV"
     fields_desc = [ByteField("type", 1), LenField("length", None)]
+
 
 class OAM_DATA_TLV(Packet):
     """
@@ -195,14 +151,30 @@ class OAM_TEST_TLV(Packet):
 
     fields_desc = [
         ByteField("type", 32),
-        LenField("length", None, adjust=lambda l: l + 1),
-        EnumField("pat_type", 0, {
-            0: "Null signal without CRC-32",
-            1: "Null signal with CRC-32",
-            2: "PRBS 2^-31 - 1 without CRC-32",
-            3: "PRBS 2^-31 - 1 with CRC-32",
-        }, fmt="B"),
-        ConditionalField(FCSField("crc", None, fmt="I"), lambda p: p.pat_type == 1 or p.pat_type == 3)
+        MultipleTypeField(
+            [
+                (
+                    LenField("length", None, adjust=lambda l: l+1),
+                    lambda p: p.pat_type == 1 or p.pat_type == 3,
+                )
+            ],
+            LenField("length", None),
+        ),
+        EnumField(
+            "pat_type",
+            0,
+            {
+                0: "Null signal without CRC-32",
+                1: "Null signal with CRC-32",
+                2: "PRBS 2^-31 - 1 without CRC-32",
+                3: "PRBS 2^-31 - 1 with CRC-32",
+            },
+            fmt="B",
+        ),
+        ConditionalField(
+            FCSField("crc", None, fmt="I"),
+            lambda p: p.pat_type == 1 or p.pat_type == 3,
+        ),
     ]
 
     def post_build(self, p, pay):
@@ -224,7 +196,7 @@ class OAM_LTM_TLV(Packet):
 
     fields_desc = [
         ByteField("type", 7),
-        LenField("length", None),
+        LenField("length", 8),
         LongField("egress_id", 0),
     ]
 
@@ -238,7 +210,7 @@ class OAM_LTR_TLV(Packet):
 
     fields_desc = [
         ByteField("type", 8),
-        LenField("length", None),
+        LenField("length", 16),
         LongField("last_egress_id", 0),
         LongField("next_egress_id", 0),
     ]
@@ -313,12 +285,13 @@ class PTP_TIMESTAMP(Packet):
     """
     PTP timestamp
     """
+
     # TODO: should be a part of PTP layer
     name = "PTP timestamp"
     fields_desc = [IntField("seconds", 0), IntField("nanoseconds", 0)]
 
     def extract_padding(self, s):
-        return b'', s
+        return b"", s
 
 
 class APS(Packet):
@@ -329,33 +302,47 @@ class APS(Packet):
     name = "APS"
 
     fields_desc = [
-        BitEnumField('req_st', 0, 4, {
-            0b0000: "No request (NR)",
-            0b0001: "Do not request (DNR)",
-            0b0010: "Reverse request (RR)",
-            0b0100: "Exercise (EXER)",
-            0b0101: "Wait-to-restore (WTR)",
-            0b0110: "Deprecated",
-            0b0111: "Manual switch (MS)",
-            0b1001: "Signal degrade (SD)",
-            0b1011: "Signal fail for working (SF)",
-            0b1101: "Forced switch (FS)",
-            0b1110: "Signal fail on protection (SF-P)",
-            0b1111: "Lockout of protection (LO)",
-        }),
-        FlagsField("prot_type", 0, 4, {
-            (1 << 3): "A",
-            (1 << 2): "B",
-            (1 << 1): "D",
-            (1 << 0): "R",
-        }),
-        EnumField("req_sig", 0, {0: "Null signal", 1: "Normal traffic"}, fmt="B"),
-        EnumField("br_sig", 0, {0: "Null signal", 1: "Normal traffic"}, fmt="B"),
+        BitEnumField(
+            "req_st",
+            0,
+            4,
+            {
+                0b0000: "No request (NR)",
+                0b0001: "Do not request (DNR)",
+                0b0010: "Reverse request (RR)",
+                0b0100: "Exercise (EXER)",
+                0b0101: "Wait-to-restore (WTR)",
+                0b0110: "Deprecated",
+                0b0111: "Manual switch (MS)",
+                0b1001: "Signal degrade (SD)",
+                0b1011: "Signal fail for working (SF)",
+                0b1101: "Forced switch (FS)",
+                0b1110: "Signal fail on protection (SF-P)",
+                0b1111: "Lockout of protection (LO)",
+            },
+        ),
+        FlagsField(
+            "prot_type",
+            0,
+            4,
+            {
+                (1 << 3): "A",
+                (1 << 2): "B",
+                (1 << 1): "D",
+                (1 << 0): "R",
+            },
+        ),
+        EnumField(
+            "req_sig", 0, {0: "Null signal", 1: "Normal traffic"}, fmt="B"
+        ),
+        EnumField(
+            "br_sig", 0, {0: "Null signal", 1: "Normal traffic"}, fmt="B"
+        ),
         FlagsField("br_type", 0, 8, {(1 << 7): "T"}),
     ]
 
     def extract_padding(self, s):
-        return b'', s
+        return b"", s
 
 
 class RAPS(Packet):
@@ -366,26 +353,43 @@ class RAPS(Packet):
     name = "R-APS"
 
     fields_desc = [
-        BitEnumField('req_st', 0, 4, {
-            0b0000: "No request (NR)",
-            0b0111: "Manual switch (MS)",
-            0b1011: "Signal fail(SF)",
-            0b1101: "Forced switch (FS)",
-            0b1110: "Event",
-        }),
-        MultipleTypeField([(BitEnumField('sub_code', 0, 4, {0b0000: "Flush"}), lambda p: p.req_st == 0b1110)],
-                          BitField("sub_code", 0, 4)),
-        FlagsField("status", 0, 8, {
-            (1 << 7): "RB",
-            (1 << 6): "DNF",
-            (1 << 5): "BPR",
-        }),
+        BitEnumField(
+            "req_st",
+            0,
+            4,
+            {
+                0b0000: "No request (NR)",
+                0b0111: "Manual switch (MS)",
+                0b1011: "Signal fail(SF)",
+                0b1101: "Forced switch (FS)",
+                0b1110: "Event",
+            },
+        ),
+        MultipleTypeField(
+            [
+                (
+                    BitEnumField("sub_code", 0, 4, {0b0000: "Flush"}),
+                    lambda p: p.req_st == 0b1110,
+                )
+            ],
+            BitField("sub_code", 0, 4),
+        ),
+        FlagsField(
+            "status",
+            0,
+            8,
+            {
+                (1 << 7): "RB",
+                (1 << 6): "DNF",
+                (1 << 5): "BPR",
+            },
+        ),
         MACField("node_id", None),
         NBytesField("resv", 0, 24),
     ]
 
     def extract_padding(self, s):
-        return b'', s
+        return b"", s
 
 
 class OAM(Packet):
@@ -445,88 +449,179 @@ class OAM(Packet):
 
     fields_desc = [
         # Common fields
-        BitField('mel', 0, 3),
+        BitField("mel", 0, 3),
         MultipleTypeField(
-            [
-                (BitField('version', 1, 5), lambda x: x.opcode in [43, 45, 47])
-            ],
-            BitField('version', 0, 5)),
+            [(BitField("version", 1, 5), lambda x: x.opcode in [43, 45, 47])],
+            BitField("version", 0, 5),
+        ),
         EnumField("opcode", None, OPCODES, fmt="B"),
         MultipleTypeField(
             [
-                (FlagsField("flags", 0, 5, {(1 << 4): "RDI"}), lambda x: x.opcode == 1),
-                (FlagsField("flags", 0, 8, {(1 << 7): "HWonly"}), lambda x: x.opcode == 5),
-                (FlagsField("flags", 0, 8, {
-                    (1 << 7): "HWonly",
-                    (1 << 6): "FwdYes",
-                    (1 << 5): "TerminalMEP",
-                }), lambda x: x.opcode == 4),
+                (
+                    FlagsField("flags", 0, 5, {(1 << 4): "RDI"}),
+                    lambda x: x.opcode == 1,
+                ),
+                (
+                    FlagsField("flags", 0, 8, {(1 << 7): "HWonly"}),
+                    lambda x: x.opcode == 5,
+                ),
+                (
+                    FlagsField(
+                        "flags",
+                        0,
+                        8,
+                        {
+                            (1 << 7): "HWonly",
+                            (1 << 6): "FwdYes",
+                            (1 << 5): "TerminalMEP",
+                        },
+                    ),
+                    lambda x: x.opcode == 4,
+                ),
                 (BitField("flags", 0, 5), lambda x: x.opcode in [33, 35, 32]),
-                (FlagsField("flags", 0, 8, {(1 << 0): "Type"}), lambda x: x.opcode in [43, 45, 47]),
-                (BitEnumField("flags", 0, 5, {
-                    0b000: "LOS",
-                    0b001: "FDI",
-                    0b010: "RDI",
-                    0b011: "DCI",
-                }), lambda x: x.opcode == 52),
+                (
+                    FlagsField("flags", 0, 8, {(1 << 0): "Type"}),
+                    lambda x: x.opcode in [43, 45, 47],
+                ),
+                (
+                    BitEnumField(
+                        "flags",
+                        0,
+                        5,
+                        {
+                            0b000: "LOS",
+                            0b001: "FDI",
+                            0b010: "RDI",
+                            0b011: "DCI",
+                        },
+                    ),
+                    lambda x: x.opcode == 52,
+                ),
             ],
-            ByteField("flags", 0)),
+            ByteField("flags", 0),
+        ),
         ConditionalField(
             MultipleTypeField(
                 [
-                    (BitEnumField("period", 1, 3, TIME_FLAGS), lambda x: x.opcode == 1),
-                    (BitEnumField("period", 0b110, 3, BNM_PERIOD_FLAGS), lambda x: x.opcode == 1)
+                    (
+                        BitEnumField("period", 1, 3, TIME_FLAGS),
+                        lambda x: x.opcode == 1,
+                    ),
+                    (
+                        BitEnumField("period", 0b110, 3, BNM_PERIOD_FLAGS),
+                        lambda x: x.opcode == 1,
+                    ),
                 ],
-                BitEnumField("period", 0b110, 3, PERIOD_FLAGS)
+                BitEnumField("period", 0b110, 3, PERIOD_FLAGS),
             ),
-            lambda x: x.opcode in [1, 33, 35, 52, 32]),
+            lambda x: x.opcode in [1, 33, 35, 52, 32],
+        ),
         MultipleTypeField(
             [
                 (ByteField("tlv_offset", 70), lambda x: x.opcode == 1),
-                (ByteField("tlv_offset", 4), lambda x: x.opcode in [3, 2, 37, 39]),
+                (
+                    ByteField("tlv_offset", 4),
+                    lambda x: x.opcode in [3, 2, 37, 39],
+                ),
                 (ByteField("tlv_offset", 17), lambda x: x.opcode == 5),
                 (ByteField("tlv_offset", 6), lambda x: x.opcode == 4),
                 (ByteField("tlv_offset", 32), lambda x: x.opcode in [40, 47]),
                 (ByteField("tlv_offset", 12), lambda x: x.opcode == 43),
-                (ByteField("tlv_offset", 16), lambda x: x.opcode in [45, 54, 53]),
+                (
+                    ByteField("tlv_offset", 16),
+                    lambda x: x.opcode in [45, 54, 53],
+                ),
                 (ByteField("tlv_offset", 13), lambda x: x.opcode == 32),
-                (ByteField("tlv_offset", 10), lambda x: x.opcode == 41 and x.subopcode == 1 and x.oui == 6567),
+                (
+                    ByteField("tlv_offset", 10),
+                    lambda x: x.opcode == 41 \
+                    and x.subopcode == 1 \
+                    and x.oui == 6567,
+                ),
             ],
-            ByteField("tlv_offset", 0)),
+            ByteField("tlv_offset", 0),
+        ),
         # End common fields
-        ConditionalField(IntField("seq_num", 0), lambda x: x.opcode in [1, 3, 2, 37]),
-        ConditionalField(IntField("trans_id", 0), lambda x: x.opcode in [5, 4]),
-        ConditionalField(OUIField("oui", None), lambda x: x.opcode in [41, 49, 48, 51, 50]),
-        ConditionalField(ByteField("subopcode", 0), lambda x: x.opcode in [41, 49, 48, 51, 50, 32]),
-        ConditionalField(MepIdField("mep_id", 0),
-                         lambda x: x.opcode == 1 or (x.opcode == 41 and x.subopcode == 1 and x.oui == 6567)),
-        ConditionalField(NBytesField("meg_id", 0, sz=48), lambda x: x.opcode == 0x01),
-        ConditionalField(ShortField("src_mep_id", 0), lambda x: x.opcode in [55, 54, 53]),
-        ConditionalField(ShortField("rcv_mep_id", 0), lambda x: x.opcode in [55, 54, 53]),
-        ConditionalField(IntField("test_id", 0), lambda x: x.opcode in [55, 54, 53]),
-        ConditionalField(IntField("txfcf", 0), lambda x: x.opcode in [1, 43, 42, 55, 54, 53]),
+        ConditionalField(
+            IntField("seq_num", 0), lambda x: x.opcode in [1, 3, 2, 37]
+        ),
+        ConditionalField(IntField("trans_id", 0),
+                         lambda x: x.opcode in [5, 4]),
+        ConditionalField(
+            OUIField("oui", None), lambda x: x.opcode in [41, 49, 48, 51, 50]
+        ),
+        ConditionalField(
+            ByteField("subopcode", 0),
+            lambda x: x.opcode in [41, 49, 48, 51, 50, 32],
+        ),
+        ConditionalField(
+            MepIdField("mep_id", 0),
+            lambda x: x.opcode == 1 \
+            or (x.opcode == 41 and x.subopcode == 1 and x.oui == 6567),
+        ),
+        ConditionalField(
+            NBytesField("meg_id", 0, sz=48), lambda x: x.opcode == 0x01
+        ),
+        ConditionalField(
+            ShortField("src_mep_id", 0), lambda x: x.opcode in [55, 54, 53]
+        ),
+        ConditionalField(
+            ShortField("rcv_mep_id", 0), lambda x: x.opcode in [55, 54, 53]
+        ),
+        ConditionalField(
+            IntField("test_id", 0), lambda x: x.opcode in [55, 54, 53]
+        ),
+        ConditionalField(
+            IntField("txfcf", 0), lambda x: x.opcode in [1, 43, 42, 55, 54, 53]
+        ),
         ConditionalField(IntField("rxfcb", 0), lambda x: x.opcode == 1),
         ConditionalField(IntField("rxfcf", 0), lambda x: x.opcode in [43, 42]),
-        ConditionalField(IntField("txfcb", 0), lambda x: x.opcode in [1, 43, 42, 55, 54]),
+        ConditionalField(
+            IntField("txfcb", 0), lambda x: x.opcode in [1, 43, 42, 55, 54]
+        ),
         ConditionalField(IntField("resv", 0), lambda x: x.opcode in [1, 53]),
         ConditionalField(ByteField("ttl", 0), lambda x: x.opcode in [5, 4]),
         ConditionalField(MACField("orig_mac", None), lambda x: x.opcode == 5),
         ConditionalField(MACField("targ_mac", None), lambda x: x.opcode == 5),
-        ConditionalField(ByteField("relay_act", None), lambda x: x.opcode == 4),
-        ConditionalField(PacketField("txtsf", PTP_TIMESTAMP(), PTP_TIMESTAMP), lambda x: x.opcode in [45, 47, 46]),
-        ConditionalField(PacketField("rxtsf", PTP_TIMESTAMP(), PTP_TIMESTAMP), lambda x: x.opcode in [45, 47, 46]),
-        ConditionalField(PacketField("txtsb", PTP_TIMESTAMP(), PTP_TIMESTAMP), lambda x: x.opcode in [47, 46]),
-        ConditionalField(PacketField("rxtsb", PTP_TIMESTAMP(), PTP_TIMESTAMP), lambda x: x.opcode in [47, 46]),
-        ConditionalField(IntField("expct_dur", None),
-                         lambda x: x.opcode == 41 and x.subopcode == 1 and x.oui == 6567),
+        ConditionalField(ByteField("relay_act", None),
+                         lambda x: x.opcode == 4),
+        ConditionalField(
+            PacketField("txtsf", PTP_TIMESTAMP(), PTP_TIMESTAMP),
+            lambda x: x.opcode in [45, 47, 46],
+        ),
+        ConditionalField(
+            PacketField("rxtsf", PTP_TIMESTAMP(), PTP_TIMESTAMP),
+            lambda x: x.opcode in [45, 47, 46],
+        ),
+        ConditionalField(
+            PacketField("txtsb", PTP_TIMESTAMP(), PTP_TIMESTAMP),
+            lambda x: x.opcode in [47, 46],
+        ),
+        ConditionalField(
+            PacketField("rxtsb", PTP_TIMESTAMP(), PTP_TIMESTAMP),
+            lambda x: x.opcode in [47, 46],
+        ),
+        ConditionalField(
+            IntField("expct_dur", None),
+            lambda x: x.opcode == 41 and x.subopcode == 1 and x.oui == 6567,
+        ),
         ConditionalField(IntField("nom_bdw", None), lambda x: x.opcode == 32),
         ConditionalField(IntField("curr_bdw", None), lambda x: x.opcode == 32),
         ConditionalField(IntField("port_id", None), lambda x: x.opcode == 32),
-        ConditionalField(PacketField("aps", APS(), APS), lambda x: x.opcode == 39),
-        ConditionalField(PacketField("raps", RAPS(), RAPS), lambda x: x.opcode == 40),
-        ConditionalField(PacketListField("tlvs", [], next_cls_cb=guess_tlv_type),
-                         lambda x: x.opcode in [3, 2, 5, 4, 37, 45, 47, 46, 55, 54, 53]),
-        ConditionalField(IntField("opt_data", None), lambda x: x.opcode in [49, 48, 51, 50] and False),  # FIXME: field documented elsewhere
+        ConditionalField(
+            PacketField("aps", APS(), APS), lambda x: x.opcode == 39
+        ),
+        ConditionalField(
+            PacketField("raps", RAPS(), RAPS), lambda x: x.opcode == 40
+        ),
+        ConditionalField(
+            PacketListField("tlvs", [], next_cls_cb=guess_tlv_type),
+            lambda x: x.opcode in [3, 2, 5, 4, 37, 45, 47, 46, 55, 54, 53],
+        ),
+        ConditionalField(
+            IntField("opt_data", None),
+            lambda x: x.opcode in [49, 48, 51, 50] and False,
+        ),  # FIXME: field documented elsewhere
         # TODO: add EXM, EXR, VSM data
         ByteField("end_tlv", 0),
     ]

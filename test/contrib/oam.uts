@@ -1,0 +1,38 @@
+# OAM unit tests
+#
+# Type the following command to launch start the tests:
+# $ test/run_tests -P "load_contrib('oam')" -t test/contrib/oam.uts
+
++ TLV test
+
+= Generic TLV
+
+pkt = OAM_TLV(raw(OAM_TLV()/Raw(b'123')))
+assert pkt.type == 1
+assert pkt.length == 3
+
+= Data TLV
+
+pkt = OAM_DATA_TLV(raw(OAM_DATA_TLV()/Raw(b'123')))
+assert pkt.type == 3
+assert pkt.length == 3
+
+= Test TLV
+
+pkt = OAM_TEST_TLV(raw(OAM_TEST_TLV(pat_type="Null signal without CRC-32")/Raw(b'123')))
+assert pkt.type == 32
+assert pkt.length == 3
+assert pkt.length == 3
+pkt = OAM_TEST_TLV(raw(OAM_TEST_TLV(pat_type="Null signal with CRC-32")/Raw(b'123')))
+assert pkt.type == 32
+assert pkt.length == 4
+assert pkt.crc == 0x68e49d87
+pkt = OAM_TEST_TLV(raw(OAM_TEST_TLV(pat_type="PRBS 2^-31 - 1 without CRC-32")/Raw(b'123')))
+assert pkt.type == 32
+assert pkt.length == 3
+pkt = OAM_TEST_TLV(raw(OAM_TEST_TLV(pat_type="PRBS 2^-31 - 1 with CRC-32")/Raw(b'123')))
+assert pkt.type == 32
+assert pkt.length == 4
+assert pkt.crc == 0xc2ed550c
+
+= Test TLV
