@@ -17,13 +17,13 @@
 # tcpdump(pktlist=rdpcap("/tmp/gvrp.pcapng.gz"), prog="tshark", args=["-r", "-", "garp"])
 
 from scapy.automaton import Automaton, ATMT
-from enum import Enum
+from enum import Enum, auto
 
 
 class PORT_TYPE(Enum):
-    NORMAL = Enum.auto()
-    NEIGHBOR = Enum.auto()
-    OWNER = Enum.auto()
+    NORMAL = auto()
+    NEIGHBOR = auto()
+    OWNER = auto()
 
 
 class REQ_PRIO(Enum):
@@ -44,14 +44,13 @@ class REQ_PRIO(Enum):
     NONE = 100
 
 
-class RAPS_TYPE(Enum):
-    NR = Enum.auto()
-    FS = Enum.auto()
-    FS_DNF = Enum.auto()
-    SF = Enum.auto()
-    MS = Enum.auto()
-    NR = Enum.auto()
-    NR_RB = Enum.auto()
+class RAPS_FLAG(Enum):
+    DNF = auto()
+    FS = auto()
+    MS = auto()
+    NR = auto()
+    RB = auto()
+    SF = auto()
 
 
 class Port():
@@ -103,11 +102,12 @@ class ERPS(Automaton):
         self.wtr_timeout = wtr_timeout  # type: float
         self.wtr_guard = guard_timeout  # type: float
         self.req = REQ_PRIO.NONE  # type: REQ_PRIO
-        self.req_port = ""  # type: str
+        self.req_port = port1  # type: Port
+        self.req_id = ""  # type: str
         self.guard_timer = False  # type: bool
         self.wtr_timer = False  # type: bool
         self.wtb_timer = False  # type: bool
-        self.tx_raps_type = RAPS_TYPE.NR  # type: RAPS_TYPE
+        self.tx_raps_type = RAPS_FLAG.NR  # type: RAPS_FLAG
         self.tx_raps = False  # type: bool
         self.revertive = revertive  # type: bool
         if port1.type == PORT_TYPE.OWNER or port2.type == PORT_TYPE.OWNER:
@@ -117,14 +117,39 @@ class ERPS(Automaton):
         else:
             self.node_type = PORT_TYPE.NORMAL  # type: PORT_TYPE
 
+    def start_guard(self):
+        self.guard_timer = True
+
+    def stop_guard(self):
+        self.guard_timer = False
+
+    def start_wtr(self):
+        self.wtr_timer = True
+
+    def stop_wtr(self):
+        self.wtr_timer = False
+
+    def start_wtb(self):
+        self.wtb_timer = True
+
+    def stop_wtb(self):
+        self.wtb_timer = False
+
     def port_by_name(self, name):
-        # type: (str) -> Port
+        # type: (str) -> (Port, Port)
         if self.port1.name == name:
             return (self.port1, self.port2)
         elif self.port2.name == name:
             return (self.port2, self.port1)
         else:
             raise RuntimeError("no such port")
+
+    def port_by_prio(self):
+        # type: () -> (Port, Port)
+        if self.port1.type == PORT_TYPE.OWNER or self.port1.type == PORT_TYPE.NEIGHBOR:
+            return (self.port1, self.port2)
+        else:
+            return (self.port2, self.port1)
 
     def block_port(self, port):
         # type: (Port) -> None
@@ -137,7 +162,7 @@ class ERPS(Automaton):
         port.unblock()
 
     def send_raps(self, msg_type):
-        # type: (RAPS_TYPE) -> None
+        # type: (list[RAPS_FLAG]) -> None
         self.debug(2, f"sending RAPS {msg_type}")
         if self.tx_raps_type != msg_type:
             self.tx_raps_type = msg_type
@@ -150,25 +175,24 @@ class ERPS(Automaton):
     def flush_fdb(self):
         pass
 
+    def req_reset(self):
+        self.req = REQ_PRIO.NONE
+
     # State machine
 
     @ATMT.state(initial=1)
     def INITIAL(self):
-        self.req = REQ_PRIO.NONE
         self.req_port = self.port1
-        self.guard_timer = False
-        self.wtr_timer = False
-        self.wtb_timer = False
-        # block RPL, unblock other
-        block, unblock = (self.port1, self.port2) \
-            if self.node_type != PORT_TYPE.NORMAL and \
-               self.port1.type != PORT_TYPE.NORMAL \
-                   else (self.port2, self.port1)
+        self.stop_guard()
+        self.stop_wtr()
+        self.stop_wtb()
+        block, unblock = self.port_by_prio()
         block.block()
         unblock.unblock()
-        self.send_raps([self.port1, self.port2], RAPS_TYPE.NR)
+        self.send_raps([RAPS_FLAG.NR])
         if self.node_type == PORT_TYPE.OWNER and self.revertive:
-            self.wtr_timer = True
+            self.start_wtr()
+        self.req_reset()
         raise self.PENDING()
 
     @ATMT.state()
@@ -178,14 +202,15 @@ class ERPS(Automaton):
     @ATMT.condition(IDLE, prio=REQ_PRIO.FS.value)
     def idle_ev_fs(self):
         if self.req == REQ_PRIO.FS:
-            block, unblock = self.port_by_name(self.req_port)
+            block, unblock = self.port_by_name(self.req_port.name)
             block.block()
             unblock.unblock()
-            if self.req_port.blocked():
-                self.send_raps(RAPS_TYPE.FS_DNF)
+            if self.req_port.blocked:
+                self.send_raps([RAPS_FLAG.FS, RAPS_FLAG.DNF])
             else:
-                self.send_raps(RAPS_TYPE.FS)
+                self.send_raps([RAPS_FLAG.FS])
                 self.flush_fdb()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.RAPS_FS.value)
@@ -194,41 +219,74 @@ class ERPS(Automaton):
             self.port1.unblock()
             self.port2.unblock()
             self.stop_raps()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.LOCAL_SF.value)
     def idle_ev_local_sf(self):
         if self.req == REQ_PRIO.LOCAL_SF:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.SF, RAPS_FLAG.DNF])
+            else:
+                block.block()
+                self.send_raps([RAPS_FLAG.SF])
+                self.flush_fdb()
+            unblock.unblock()
+            self.req_reset()
             raise self.PROTECTION()
-
-    @ATMT.condition(IDLE, prio=REQ_PRIO.LOCAL_CLEAR_SF.value)
-    def idle_ev_local_clear_sf(self):
-        if self.req == REQ_PRIO.LOCAL_CLEAR_SF:
-            raise self.IDLE()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.RAPS_SF.value)
     def idle_ev_raps_sf(self):
         if self.req == REQ_PRIO.RAPS_SF:
+            _, unblock = self.port_by_name(self.req_port.name)
+            unblock.unblock()
+            self.stop_raps()
+            self.req_reset()
             raise self.PROTECTION()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.RAPS_MS.value)
     def idle_ev_raps_ms(self):
         if self.req == REQ_PRIO.RAPS_MS:
+            _, unblock = self.port_by_name(self.req_port.name)
+            unblock.unblock()
+            self.stop_raps()
+            self.req_reset()
             raise self.MANUAL_SWITCH()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.MS.value)
     def idle_ev_ms(self):
         if self.req == REQ_PRIO.MS:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.MS, RAPS_FLAG.DNF])
+            else:
+                self.send_raps([RAPS_FLAG.MS])
+                self.flush_fdb()
+                block.block()
+            unblock.unblock()
+            self.req_reset()
             raise self.MANUAL_SWITCH()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.RAPS_NR_RB.value)
     def idle_ev_raps_nr_rb(self):
         if self.req == REQ_PRIO.RAPS_NR_RB:
+            _, unblock = self.port_by_name(self.req_port.name)
+            unblock.unblock()
+            if self.node_type != PORT_TYPE.OWNER:
+                self.stop_raps()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.RAPS_NR.value)
     def idle_ev_raps_nr(self):
         if self.req == REQ_PRIO.RAPS_NR:
+            # FIXME: WTF?
+            if self.node_type == PORT_TYPE.NORMAL and self.req_id > self.node_id:
+                _, unblock = self.port_by_name(self.req_port.name)
+                unblock.unblock()
+                self.stop_raps()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.state()
@@ -238,41 +296,62 @@ class ERPS(Automaton):
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.FS.value)
     def protection_ev_fs(self):
         if self.req == REQ_PRIO.FS:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.FS, RAPS_FLAG.DNF])
+            else:
+                block.block()
+                self.send_raps([RAPS_FLAG.FS])
+                self.flush_fdb()
+            unblock.unblock()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.RAPS_FS.value)
     def protection_ev_raps_fs(self):
         if self.req == REQ_PRIO.RAPS_FS:
+            self.port1.unblock()
+            self.port2.unblock()
+            self.stop_raps()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.LOCAL_SF.value)
     def protection_ev_local_sf(self):
         if self.req == REQ_PRIO.LOCAL_SF:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.SF, RAPS_FLAG.DNF])
+            else:
+                block.block()
+                self.send_raps([RAPS_FLAG.SF])
+                self.flush_fdb()
+            unblock.unblock()
+            self.req_reset()
             raise self.PROTECTION()
 
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.LOCAL_CLEAR_SF.value)
     def protection_ev_local_clear_sf(self):
         if self.req == REQ_PRIO.LOCAL_CLEAR_SF:
+            self.start_guard()
+            self.send_raps([RAPS_FLAG.NR])
+            if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                self.start_wtr()
+            self.req_reset()
             raise self.PENDING()
-
-    @ATMT.condition(PROTECTION, prio=REQ_PRIO.WTR_EXP.value)
-    def protection_ev_wtr_exp(self):
-        if self.req == REQ_PRIO.WTR_EXP:
-            raise self.IDLE()
-
-    @ATMT.condition(PROTECTION, prio=REQ_PRIO.WTB_EXP.value)
-    def protection_ev_wtb_exp(self):
-        if self.req == REQ_PRIO.WTB_EXP:
-            raise self.IDLE()
 
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.RAPS_NR_RB.value)
     def protection_ev_raps_nr_rb(self):
         if self.req == REQ_PRIO.RAPS_NR_RB:
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.RAPS_NR.value)
     def protection_ev_raps_nr(self):
         if self.req == REQ_PRIO.RAPS_NR:
+            if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                self.start_wtr()
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.state()
@@ -282,41 +361,83 @@ class ERPS(Automaton):
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.CLEAR.value)
     def manual_switch_ev_clear(self):
         if self.req == REQ_PRIO.CLEAR:
+            if self.port1.blocked or self.port2.blocked:
+                self.start_guard()
+                self.send_raps([RAPS_FLAG.NR])
+                if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                    self.start_wtb()
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.FS.value)
     def manual_switch_ev_fs(self):
         if self.req == REQ_PRIO.FS:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.FS, RAPS_FLAG.DNF])
+            else:
+                block.block()
+                self.send_raps([RAPS_FLAG.FS])
+                self.flush_fdb()
+            unblock.unblock()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.RAPS_FS.value)
     def manual_switch_ev_raps_fs(self):
         if self.req == REQ_PRIO.RAPS_FS:
+            self.port1.unblock()
+            self.port2.unblock()
+            self.stop_raps()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.LOCAL_SF.value)
     def manual_switch_ev_local_sf(self):
         if self.req == REQ_PRIO.LOCAL_SF:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.SF, RAPS_FLAG.DNF])
+            else:
+                block.block()
+                self.send_raps([RAPS_FLAG.SF])
+                self.flush_fdb()
+            unblock.unblock()
+            self.req_reset()
             raise self.PROTECTION()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.RAPS_SF.value)
     def manual_switch_ev_raps_sf(self):
         if self.req == REQ_PRIO.RAPS_SF:
+            _, unblock = self.port_by_name(self.req_port.name)
+            unblock.unblock()
+            self.stop_raps()
+            self.req_reset()
             raise self.PROTECTION()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.RAPS_MS.value)
     def manual_switch_ev_raps_ms(self):
         if self.req == REQ_PRIO.RAPS_MS:
+            if self.port1.blocked or self.port2.blocked:
+                self.start_guard()
+                self.send_raps([RAPS_FLAG.NR])
+                if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                    self.start_wtb()
+            self.req_reset()
             raise self.PENDING() or self.IDLE()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.RAPS_NR_RB.value)
     def manual_switch_ev_raps_nr_rb(self):
         if self.req == REQ_PRIO.RAPS_NR_RB:
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.RAPS_NR.value)
     def manual_switch_ev_raps_nr(self):
         if self.req == REQ_PRIO.RAPS_NR:
+            if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                self.start_wtb()
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.state()
@@ -326,21 +447,35 @@ class ERPS(Automaton):
     @ATMT.condition(FORCED_SWITCH, prio=REQ_PRIO.CLEAR.value)
     def forced_switch_ev_clear(self):
         if self.req == REQ_PRIO.CLEAR:
+            if self.port1.blocked or self.port2.blocked:
+                self.start_guard()
+                self.send_raps([RAPS_FLAG.NR])
+                if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                    self.start_wtb()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.condition(FORCED_SWITCH, prio=REQ_PRIO.FS.value)
     def forced_switch_ev_fs(self):
         if self.req == REQ_PRIO.FS:
+            self.req_port.block()
+            self.send_raps([RAPS_FLAG.FS])
+            self.flush_fdb()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(FORCED_SWITCH, prio=REQ_PRIO.RAPS_NR_RB.value)
     def forced_switch_ev_raps_nr_rb(self):
         if self.req == REQ_PRIO.RAPS_NR_RB:
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.condition(FORCED_SWITCH, prio=REQ_PRIO.RAPS_NR.value)
     def forced_switch_ev_raps_nr(self):
         if self.req == REQ_PRIO.RAPS_NR:
+            if self.node_type == PORT_TYPE.OWNER and self.revertive:
+                self.start_wtb()
+            self.req_reset()
             raise self.PENDING()
 
     @ATMT.state()
@@ -350,64 +485,170 @@ class ERPS(Automaton):
     @ATMT.condition(PENDING, prio=REQ_PRIO.CLEAR.value)
     def pending_ev_clear(self):
         if self.req == REQ_PRIO.CLEAR:
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
+                block, unblock = self.port_by_prio()
+                if block.blocked:
+                    self.send_raps([RAPS_FLAG.NR, RAPS_FLAG.RB, RAPS_FLAG.DNF])
+                else:
+                    block.block()
+                    self.send_raps([RAPS_FLAG.NR, RAPS_FLAG.RB])
+                    self.flush_fdb()
+                unblock.unblock()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.FS.value)
     def pending_ev_fs(self):
         if self.req == REQ_PRIO.FS:
+            self.req_reset()
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.FS, RAPS_FLAG.DNF])
+            else:
+                self.send_raps([RAPS_FLAG.FS])
+                self.flush_fdb()
+            unblock.unblock()
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.RAPS_FS.value)
     def pending_ev_raps_fs(self):
         if self.req == REQ_PRIO.RAPS_FS:
+            self.port1.unblock()
+            self.port2.unblock()
+            self.stop_raps()
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
+            self.req_reset()
             raise self.FORCED_SWITCH()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.LOCAL_SF.value)
     def pending_ev_local_sf(self):
         if self.req == REQ_PRIO.LOCAL_SF:
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.FS, RAPS_FLAG.DNF])
+            else:
+                self.send_raps([RAPS_FLAG.FS])
+                self.flush_fdb()
+            unblock.unblock()
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
+            self.req_reset()
             raise self.PROTECTION()
-
-    @ATMT.condition(PENDING, prio=REQ_PRIO.LOCAL_CLEAR_SF.value)
-    def pending_ev_local_clear_sf(self):
-        if self.req == REQ_PRIO.LOCAL_CLEAR_SF:
-            raise self.PENDING()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.RAPS_SF.value)
     def pending_ev_raps_sf(self):
         if self.req == REQ_PRIO.RAPS_SF:
+            _, unblock = self.port_by_name(self.req_port.name)
+            unblock.unblock()
+            self.stop_raps()
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
+            self.req_reset()
             raise self.PROTECTION()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.RAPS_MS.value)
     def pending_ev_raps_ms(self):
         if self.req == REQ_PRIO.RAPS_MS:
+            _, unblock = self.port_by_name(self.req_port.name)
+            unblock.unblock()
+            self.stop_raps()
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
+            self.req_reset()
             raise self.MANUAL_SWITCH()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.MS.value)
     def pending_ev_ms(self):
         if self.req == REQ_PRIO.MS:
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtr()
+                self.stop_wtb()
+            block, unblock = self.port_by_name(self.req_port.name)
+            if block.blocked:
+                self.send_raps([RAPS_FLAG.MS, RAPS_FLAG.DNF])
+            else:
+                block.block()
+                self.send_raps([RAPS_FLAG.MS])
+                self.flush_fdb()
+            unblock.unblock()
+            self.req_reset()
             raise self.MANUAL_SWITCH()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.WTR_EXP.value)
     def pending_ev_wtr_exp(self):
         if self.req == REQ_PRIO.WTR_EXP:
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtb()
+                block, unblock = self.port_by_prio()
+                if block.blocked:
+                    self.send_raps([RAPS_FLAG.MS, RAPS_FLAG.DNF])
+                else:
+                    block.block()
+                    self.send_raps([RAPS_FLAG.MS])
+                    self.flush_fdb()
+                unblock.unblock()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.WTB_EXP.value)
     def pending_ev_wtb_exp(self):
         if self.req == REQ_PRIO.WTB_EXP:
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtb()
+                block, unblock = self.port_by_prio()
+                if block.blocked:
+                    self.send_raps([RAPS_FLAG.MS, RAPS_FLAG.DNF])
+                else:
+                    block.block()
+                    self.send_raps([RAPS_FLAG.MS])
+                    self.flush_fdb()
+                unblock.unblock()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.RAPS_NR_RB.value)
     def pending_ev_raps_nr_rb(self):
         if self.req == REQ_PRIO.RAPS_NR_RB:
+            if self.node_type == PORT_TYPE.OWNER:
+                self.stop_wtb()
+                self.stop_wtr()
+            elif self.node_type == PORT_TYPE.NEIGHBOR:
+                block, unblock = self.port_by_prio()
+                block.block()
+                unblock.unblock()
+                self.stop_raps()
+            else:
+                self.port1.unblock()
+                self.port2.unblock()
+                self.stop_raps()
+            self.req_reset()
             raise self.IDLE()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.RAPS_NR.value)
     def pending_ev_raps_nr(self):
         if self.req == REQ_PRIO.RAPS_NR:
+            # FIXME: WTF?
+            if self.req_id > self.node_id:
+                _, unblock = self.port_by_name(self.req_port.name)
+                unblock.unblock()
+                self.stop_raps()
+            self.req_reset()
             raise self.PENDING()
 
 
 ERPS.graph()
-# sm = ERPS(port1=1, port2=2, port1_type=PORT_TYPE.OWNER, debug=5)
+
+# port1=Port("eth0", PORT_TYPE.OWNER)
+# port2=Port("eth0", PORT_TYPE.NORMAL)
+# sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=5)
 # sm.run()
