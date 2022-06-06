@@ -27,21 +27,21 @@ class PORT_TYPE(Enum):
 
 
 class REQ_PRIO(Enum):
-    CLEAR = 1
-    FS = 2
-    RAPS_FS = 3
-    LOCAL_SF = 4
-    LOCAL_CLEAR_SF = 5
-    RAPS_SF = 6
-    RAPS_MS = 7
-    MS = 8
-    WTR_EXP = 9
-    WTR_RUN = 10
-    WTB_EXP = 11
-    WTB_RUN = 12
-    RAPS_NR_RB = 13
-    RAPS_NR = 14
-    NONE = 100
+    CLEAR = auto()
+    FS = auto()
+    RAPS_FS = auto()
+    LOCAL_SF = auto()
+    LOCAL_CLEAR_SF = auto()
+    RAPS_SF = auto()
+    RAPS_MS = auto()
+    MS = auto()
+    WTR_EXP = auto()
+    WTR_RUN = auto()
+    WTB_EXP = auto()
+    WTB_RUN = auto()
+    RAPS_NR_RB = auto()
+    RAPS_NR = auto()
+    NONE = auto()
 
 
 class RAPS_FLAG(Enum):
@@ -67,15 +67,17 @@ class Port():
 
     def block(self):
         self.blocked = True
+        print(f"port {self.name} block")
 
     def unblock(self):
         self.blocked = False
+        print(f"port {self.name} unblock")
 
     def send(self, msg):
-        pass
+        print(f"port {self.name} msg {msg}")
 
     def check_failed(self):
-        pass
+        print("check failed")
 
 
 class ERPS(Automaton):
@@ -169,6 +171,12 @@ class ERPS(Automaton):
             [[port.send(msg_type) for port in [self.port1, self.port2]] for _ in range(3)]
         self.tx_raps = True
 
+    def resend_raps(self):
+        # type: (list[RAPS_FLAG]) -> None
+        self.debug(2, f"resending RAPS {self.tx_raps_type}")
+        if self.tx_raps:
+            [port.send(self.tx_raps_type) for port in [self.port1, self.port2]]
+
     def stop_raps(self):
         self.tx_raps = False
 
@@ -198,6 +206,10 @@ class ERPS(Automaton):
     @ATMT.state()
     def IDLE(self):
         pass
+
+    @ATMT.timeout(IDLE, 1)
+    def idle_raps_resend(self):
+        self.resend_raps()
 
     @ATMT.condition(IDLE, prio=REQ_PRIO.FS.value)
     def idle_ev_fs(self):
@@ -293,6 +305,10 @@ class ERPS(Automaton):
     def PROTECTION(self):
         pass
 
+    @ATMT.timeout(PROTECTION, 1)
+    def protection_raps_resend(self):
+        self.resend_raps()
+
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.FS.value)
     def protection_ev_fs(self):
         if self.req == REQ_PRIO.FS:
@@ -357,6 +373,10 @@ class ERPS(Automaton):
     @ATMT.state()
     def MANUAL_SWITCH(self):
         pass
+
+    @ATMT.timeout(MANUAL_SWITCH, 1)
+    def manual_switch_raps_resend(self):
+        self.resend_raps()
 
     @ATMT.condition(MANUAL_SWITCH, prio=REQ_PRIO.CLEAR.value)
     def manual_switch_ev_clear(self):
@@ -444,6 +464,10 @@ class ERPS(Automaton):
     def FORCED_SWITCH(self):
         pass
 
+    @ATMT.timeout(FORCED_SWITCH, 1)
+    def forced_raps_resend(self):
+        self.resend_raps()
+
     @ATMT.condition(FORCED_SWITCH, prio=REQ_PRIO.CLEAR.value)
     def forced_switch_ev_clear(self):
         if self.req == REQ_PRIO.CLEAR:
@@ -481,6 +505,10 @@ class ERPS(Automaton):
     @ATMT.state()
     def PENDING(self):
         pass
+
+    @ATMT.timeout(PENDING, 1)
+    def pending_raps_resend(self):
+        self.resend_raps()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.CLEAR.value)
     def pending_ev_clear(self):
@@ -646,9 +674,9 @@ class ERPS(Automaton):
             raise self.PENDING()
 
 
-ERPS.graph()
+# ERPS.graph()
 
-# port1=Port("eth0", PORT_TYPE.OWNER)
-# port2=Port("eth0", PORT_TYPE.NORMAL)
-# sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=5)
-# sm.run()
+port1=Port("eth0", PORT_TYPE.OWNER)
+port2=Port("eth1", PORT_TYPE.NORMAL)
+sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=5)
+sm.run()
