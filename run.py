@@ -16,7 +16,7 @@
 # wrpcap("/tmp/1.pcapng", Ether(pkt.build()))
 # tcpdump(pktlist=rdpcap("/tmp/gvrp.pcapng.gz"), prog="tshark", args=["-r", "-", "garp"])
 
-from scapy.automaton import Automaton, ATMT
+from scapy.automaton import Automaton, ATMT, Timer
 from enum import Enum, auto
 
 
@@ -82,6 +82,11 @@ class Port():
 
 class ERPS(Automaton):
 
+    RAPS_TIMEOUT = Timer(1, autoreload=True)
+    WTR_TIMEOUT = Timer(1)
+    WTB_TIMEOUT = Timer(1)
+    GUARD_TIMEOUT = Timer(1)
+
     def __init__(self, *args, **kwargs):
         super(ERPS, self).__init__(*args, **kwargs)
 
@@ -92,6 +97,7 @@ class ERPS(Automaton):
                    port2,
                    guard_timeout=1,
                    wtr_timeout=1,
+                   wtb_timeout=1,
                    revertive=False,
                    **kargs):
         super(ERPS, self).parse_args(**kargs)
@@ -207,7 +213,7 @@ class ERPS(Automaton):
     def IDLE(self):
         pass
 
-    @ATMT.timeout(IDLE, 1)
+    @ATMT.timeout(IDLE, RAPS_TIMEOUT)
     def idle_raps_resend(self):
         self.resend_raps()
 
@@ -305,7 +311,7 @@ class ERPS(Automaton):
     def PROTECTION(self):
         pass
 
-    @ATMT.timeout(PROTECTION, 1)
+    @ATMT.timeout(PROTECTION, RAPS_TIMEOUT)
     def protection_raps_resend(self):
         self.resend_raps()
 
@@ -374,7 +380,7 @@ class ERPS(Automaton):
     def MANUAL_SWITCH(self):
         pass
 
-    @ATMT.timeout(MANUAL_SWITCH, 1)
+    @ATMT.timeout(MANUAL_SWITCH, RAPS_TIMEOUT)
     def manual_switch_raps_resend(self):
         self.resend_raps()
 
@@ -674,9 +680,9 @@ class ERPS(Automaton):
             raise self.PENDING()
 
 
-# ERPS.graph()
+ERPS.graph()
 
-port1=Port("eth0", PORT_TYPE.OWNER)
-port2=Port("eth1", PORT_TYPE.NORMAL)
-sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=5)
-sm.run()
+# port1=Port("eth0", PORT_TYPE.OWNER)
+# port2=Port("eth1", PORT_TYPE.NORMAL)
+# sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=5)
+# sm.run()
