@@ -82,11 +82,6 @@ class Port():
 
 class ERPS(Automaton):
 
-    RAPS_TIMEOUT = Timer(1, autoreload=True)
-    WTR_TIMEOUT = Timer(1)
-    WTB_TIMEOUT = Timer(1)
-    GUARD_TIMEOUT = Timer(1)
-
     def __init__(self, *args, **kwargs):
         super(ERPS, self).__init__(*args, **kwargs)
 
@@ -118,6 +113,8 @@ class ERPS(Automaton):
         self.tx_raps_type = RAPS_FLAG.NR  # type: RAPS_FLAG
         self.tx_raps = False  # type: bool
         self.revertive = revertive  # type: bool
+        # if guard_timeout < 1 or guard_timeout < 200:
+        #     raise ValueError("The value is an integer that ranges from 1 to 200, in centiseconds")
         if port1.type == PORT_TYPE.OWNER or port2.type == PORT_TYPE.OWNER:
             self.node_type = PORT_TYPE.OWNER  # type: PORT_TYPE
         elif port1.type == PORT_TYPE.NEIGHBOR or port2.type == PORT_TYPE.NEIGHBOR:
@@ -213,7 +210,7 @@ class ERPS(Automaton):
     def IDLE(self):
         pass
 
-    @ATMT.timeout(IDLE, RAPS_TIMEOUT)
+    @ATMT.timer(IDLE, 5)
     def idle_raps_resend(self):
         self.resend_raps()
 
@@ -311,10 +308,6 @@ class ERPS(Automaton):
     def PROTECTION(self):
         pass
 
-    @ATMT.timeout(PROTECTION, RAPS_TIMEOUT)
-    def protection_raps_resend(self):
-        self.resend_raps()
-
     @ATMT.condition(PROTECTION, prio=REQ_PRIO.FS.value)
     def protection_ev_fs(self):
         if self.req == REQ_PRIO.FS:
@@ -380,7 +373,7 @@ class ERPS(Automaton):
     def MANUAL_SWITCH(self):
         pass
 
-    @ATMT.timeout(MANUAL_SWITCH, RAPS_TIMEOUT)
+    @ATMT.timer(MANUAL_SWITCH, 5)
     def manual_switch_raps_resend(self):
         self.resend_raps()
 
@@ -470,7 +463,7 @@ class ERPS(Automaton):
     def FORCED_SWITCH(self):
         pass
 
-    @ATMT.timeout(FORCED_SWITCH, 1)
+    @ATMT.timer(FORCED_SWITCH, 5)
     def forced_raps_resend(self):
         self.resend_raps()
 
@@ -512,9 +505,21 @@ class ERPS(Automaton):
     def PENDING(self):
         pass
 
-    @ATMT.timeout(PENDING, 1)
+    @ATMT.timer(PENDING, 5)
     def pending_raps_resend(self):
         self.resend_raps()
+
+    @ATMT.timeout(PENDING, 1)
+    def pending_wtr_timeout(self):
+        if self.wtr_timer:
+            self.req = REQ_PRIO.WTR_EXP
+            raise self.PENDING()
+
+    @ATMT.timeout(PENDING, 1)
+    def pending_wtb_timeout(self):
+        if self.wtb_timer:
+            self.req = REQ_PRIO.WTB_EXP
+            raise self.PENDING()
 
     @ATMT.condition(PENDING, prio=REQ_PRIO.CLEAR.value)
     def pending_ev_clear(self):
@@ -680,9 +685,7 @@ class ERPS(Automaton):
             raise self.PENDING()
 
 
-ERPS.graph()
-
-# port1=Port("eth0", PORT_TYPE.OWNER)
-# port2=Port("eth1", PORT_TYPE.NORMAL)
-# sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=5)
-# sm.run()
+port1=Port("eth0", PORT_TYPE.OWNER)
+port2=Port("eth1", PORT_TYPE.NORMAL)
+sm = ERPS(node_id="", vlan=1, port1=port1, port2=port2, debug=3)
+sm.run()
