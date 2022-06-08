@@ -1213,6 +1213,7 @@ class Automaton:
                             pkt = self.listen_sock.recv(MTU)
                             if pkt is not None:
                                 if self.master_filter(pkt):
+                                    pkt.sniffed_on = self.listen_sock.iface
                                     self.debug(3, "RECVD: %s" % pkt.summary())  # noqa: E501
                                     for rcvcond in self.recv_conditions[self.state.state]:  # noqa: E501
                                         self._run_condition(rcvcond, pkt, *state_output)  # noqa: E501
